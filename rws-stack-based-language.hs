@@ -6,6 +6,7 @@ import Control.Monad
 import Control.Monad.Trans.RWS.Lazy
 import Data.Char
 import Data.Function
+import Text.Printf
 
 -- 😂 Concatenative Functional Languages >>> Haskell
 -- https://evincarofautumn.blogspot.com/2012/02/why-concatenative-programming-matters.html
@@ -21,7 +22,7 @@ data MachineState =
 $(makeLenses ''MachineState)
 
 instance Show MachineState where
-  show s = "IP: " ++ show (s ^. ip) ++ "\nMemory: " ++ show (s ^. memory)
+  show s = printf "IP: %s\nMemory: %s" (show $ s ^. ip) (show $ s ^. memory)
 
 stateWithMemory :: Int -> MachineState
 stateWithMemory = MachineState 0 . (`replicate` 0)
