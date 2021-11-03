@@ -20,6 +20,7 @@ type Stack = [Int]
 
 type Bytecode = [Int]
 
+-- TODO Machine state should be instruction pointer AND memory
 type MachineOp = RWS Bytecode Stdout IP
 
 type Machine = MachineOp (Either String Stack)
