@@ -28,8 +28,10 @@ type MachineOp = RWS Bytecode Stdout IP
 
 type Machine = MachineOp (Either String Stack)
 
-decodeInstruction :: MachineOp (Either String Operation)
-decodeInstruction = do
+keywords = zip ["+", ".", "dup", "-", "jnz"] [1 ..]
+
+decodeOperation :: MachineOp (Either String Operation)
+decodeOperation = do
   ip <- get
   bytecode <- ask
   case drop ip bytecode of
@@ -47,31 +49,31 @@ decodeInstruction = do
       put $ ip + n
       return $ Right v
 
+-- Math related binary operation
+mbin :: Stack -> Operation -> (Int -> Int -> Int) -> Machine
+mbin (a:b:rest) _ f = execute $ f b a : rest
+mbin _ op _ = return $ Left $ "Not enough data for " ++ show op ++ " operation"
+
 instr :: Stack -> Operation -> Machine
 instr stack Halt = return $ Right stack
 instr stack (Push x) = execute $ x : stack
-instr (a:b:rest) Add = execute $ (a + b) : rest
-instr _ Add = return $ Left "Not enought data for Add operation"
-instr (a:b:rest) Subtract = execute $ (b - a) : rest
-instr _ Subtract = return $ Left "Not enought data for Subtract operation"
+instr stack Add = mbin stack Add (+)
+instr stack Subtract = mbin stack Subtract (-)
 instr (a:rest) Dup = execute $ a : a : rest
 instr _ Dup = return $ Left "Not enought data for Dup operation"
 instr (a:rest) Print = do
   tell [show a]
   execute rest
 instr _ Print = return $ Left "Not enough data for Print operation"
-instr (target:value:rest) JumpIfNotZero =
-  if value /= 0
-    then do
-      put target
-      execute rest
-    else execute rest
+instr (target:value:rest) JumpIfNotZero = do
+  when (value /= 0) $ put target
+  execute rest
 instr _ JumpIfNotZero =
   return $ Left "Not enough data for Jump If Not Zero operation"
 
 execute :: Stack -> Machine
 execute stack = do
-  op <- decodeInstruction
+  op <- decodeOperation
   case op of
     (Right op) -> instr stack op
     (Left err) -> return $ Left err
@@ -95,8 +97,6 @@ run = summary .: runMachine
         putStr "Stack: "
         print stack
       return stack
-
-keywords = zip ["+", ".", "dup", "-", "jnz"] [1 ..]
 
 compile :: String -> Either String Bytecode
 compile = c . words
