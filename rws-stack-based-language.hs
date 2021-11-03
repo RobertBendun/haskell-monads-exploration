@@ -2,6 +2,9 @@ import Control.Monad
 import Control.Monad.Trans.RWS.Lazy
 import Data.Char
 
+(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.:) = (.) . (.)
+
 data Operation
   = Push Int
   | Add
@@ -73,38 +76,62 @@ execute stack = do
     (Right op) -> instr stack op
     (Left err) -> return $ Left err
 
-runMachine :: Bytecode -> (Either String Stack, Stdout)
-runMachine memoryMap = evalRWS (execute []) memoryMap ip
+runMachine :: Stack -> Bytecode -> (Either String Stack, Stdout)
+runMachine stack bytecode = evalRWS (execute stack) bytecode ip
   where
     ip = 0
 
-run :: Bytecode -> IO ()
-run = summary . runMachine
+run :: Stack -> Bytecode -> IO Stack
+run = summary .: runMachine
   where
-    summary :: (Either String Stack, Stdout) -> IO ()
+    summary :: (Either String Stack, Stdout) -> IO Stack
     summary (Left message, _) = do
-      putStr "Error: "
+      putStr "Execution error: "
       print message
+      return []
     summary (Right stack, stdout) = do
-      putStrLn "Stdout: "
       forM_ stdout (putStrLn . ("  " ++))
       unless (null stack) $ do
         putStr "Stack: "
         print stack
+      return stack
 
-compile :: String -> Bytecode
+keywords = zip ["+", ".", "dup", "-", "jnz"] [1 ..]
+
+compile :: String -> Either String Bytecode
 compile = c . words
   where
-    c :: [String] -> [Int]
+    c :: [String] -> Either String Bytecode
     c (n:rest)
-      | all isDigit n = [0, read n] ++ c rest
-    c ("+":rest) = 1 : c rest
-    c (".":rest) = 2 : c rest
-    c ("dup":rest) = 3 : c rest
-    c ("-":rest) = 4 : c rest
-    c ("jnz":rest) = 5 : c rest
-    c [] = []
-    c x = error $ "Invalid command: " ++ show x
+      | all isDigit n = ([0, read n] ++) <$> c rest
+    c (k:rest) =
+      case [id | (keyword, id) <- keywords, keyword == k] of
+        [v] -> (v :) <$> c rest
+        _ -> Left $ "Invalid command: " ++ k
+    c [] = Right []
+
+compileAndRun :: Stack -> String -> IO Stack
+compileAndRun stack program =
+  case compile program of
+    Right bytecode -> run stack bytecode
+    Left err -> do
+      putStr "Compilation error: "
+      putStrLn err
+      return stack
+
+repl :: IO ()
+repl = loop []
+  where
+    loop :: Stack -> IO ()
+    loop stack = do
+      putStr "> "
+      program <- getLine
+      case program of
+        "exit" -> return ()
+        "bye" -> return ()
+        _ -> do
+          stack' <- compileAndRun stack program
+          loop stack'
 
 basic = "10 305 dup . + ."
 
@@ -116,7 +143,7 @@ main =
     divider
     putStrLn example
     divider
-    run $ compile $ example
+    compileAndRun [] example
   where
     examples = [basic, loop]
     dividerLength = maximum $ map length examples
