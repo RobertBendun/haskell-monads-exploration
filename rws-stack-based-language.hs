@@ -2,6 +2,8 @@ import Control.Monad
 import Control.Monad.Trans.RWS.Lazy
 import Data.Char
 
+-- 😂Concatenative Functional Languages >>> Haskell
+-- https://evincarofautumn.blogspot.com/2012/02/why-concatenative-programming-matters.html
 (.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (.:) = (.) . (.)
 
