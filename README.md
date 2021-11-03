@@ -9,3 +9,11 @@ Due to development of [Stacky](https://github.com/RobertBendun/stacky), my examp
 ## File naming convention
 
 `<monad>-<example>.hs` is a file where I explore monad `<monad>` by modeling `<example>`
+
+## Dependencies
+
+Only lenses, why there are not part of standard I dunno.
+
+```console
+$ sudo pacman -S ghc ghc-libs ghc-static ghc-lens
+```
