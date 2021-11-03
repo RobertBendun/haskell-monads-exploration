@@ -1,11 +1,30 @@
+{-# LANGUAGE DeriveGeneric, NamedFieldPuns, TemplateHaskell #-}
+
+import Control.Lens hiding (element)
+import Control.Lens.TH
 import Control.Monad
 import Control.Monad.Trans.RWS.Lazy
 import Data.Char
+import Data.Function
 
 -- 😂 Concatenative Functional Languages >>> Haskell
 -- https://evincarofautumn.blogspot.com/2012/02/why-concatenative-programming-matters.html
 (.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (.:) = (.) . (.)
+
+data MachineState =
+  MachineState
+    { _ip :: Int
+    , _memory :: [Int]
+    }
+
+$(makeLenses ''MachineState)
+
+instance Show MachineState where
+  show s = "IP: " ++ show (s ^. ip) ++ "\nMemory: " ++ show (s ^. memory)
+
+stateWithMemory :: Int -> MachineState
+stateWithMemory = MachineState 0 . (`replicate` 0)
 
 data Operation
   = Push Int
@@ -25,8 +44,7 @@ type Stack = [Int]
 
 type Bytecode = [Int]
 
--- TODO Machine state should be instruction pointer AND memory
-type MachineOp = RWS Bytecode Stdout IP
+type MachineOp = RWS Bytecode Stdout MachineState
 
 type Machine = MachineOp (Either String Stack)
 
@@ -34,9 +52,9 @@ keywords = zip ["+", ".", "dup", "-", "jnz"] [1 ..]
 
 decodeOperation :: MachineOp (Either String Operation)
 decodeOperation = do
-  ip <- get
+  state <- get
   bytecode <- ask
-  case drop ip bytecode of
+  case drop (state ^. ip) bytecode of
     (0:x:_) -> decoded 2 $ Push x
     (1:_) -> decoded 1 Add
     (2:_) -> decoded 1 Print
@@ -47,8 +65,7 @@ decodeOperation = do
     xs -> return $ Left $ "Unknown bytecode: " ++ show xs
   where
     decoded n v = do
-      ip <- get
-      put $ ip + n
+      modify $ ip +~ n
       return $ Right v
 
 -- Math related binary operation
@@ -68,7 +85,7 @@ instr (a:rest) Print = do
   execute rest
 instr _ Print = return $ Left "Not enough data for Print operation"
 instr (target:value:rest) JumpIfNotZero = do
-  when (value /= 0) $ put target
+  when (value /= 0) $ modify $ ip .~ target
   execute rest
 instr _ JumpIfNotZero =
   return $ Left "Not enough data for Jump If Not Zero operation"
@@ -83,7 +100,7 @@ execute stack = do
 runMachine :: Stack -> Bytecode -> (Either String Stack, Stdout)
 runMachine stack bytecode = evalRWS (execute stack) bytecode ip
   where
-    ip = 0
+    ip = stateWithMemory 30
 
 run :: Stack -> Bytecode -> IO Stack
 run = summary .: runMachine

@@ -4,7 +4,7 @@ This repo contains exploration of `State`, `Reader`, `Writer` and `RWS` monads i
 
 ## What's interesting here?
 
-Due to development of [Stacky](https://github.com/RobertBendun/stacky), my example for `ReadWriteState` Monad is simple concatenative stack-based language bytecode interpreter (+ compiler). You can find it in [rws-stack-based-language.hs](./rws-stack-based-language.hs).
+Due to development of [Stacky](https://github.com/RobertBendun/stacky), my example for `ReadWriteState` Monad is simple concatenative stack-based language bytecode interpreter (+ compiler). You can find it in [rws-stack-based-language.hs](./rws-stack-based-language.hs). Additionaly it uses [lenses](https://hackage.haskell.org/package/lens).
 
 ## File naming convention
 
