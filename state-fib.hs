@@ -15,7 +15,7 @@ withFib = (`evalState` initialFib)
 
 currFib :: FibState Int
 currFib = do
-  (f,_) <- get
+  (f, _) <- get
   return f
 
 nextFib :: FibState Int
@@ -24,37 +24,39 @@ nextFib = do
   currFib
 
 runN :: Monad m => Int -> m a -> m ()
-runN n t | n > 0 = do
-  t
-  runN (n-1) t
+runN n t
+  | n > 0 = do
+    t
+    runN (n - 1) t
 runN 0 t = return ()
 
 genN :: Monad m => Int -> m a -> m [a]
-genN n t | n > 0 = do
-  x <- t
-  xs <- genN (n-1) t
-  return $ x : xs
+genN n t
+  | n > 0 = do
+    x <- t
+    xs <- genN (n - 1) t
+    return $ x : xs
 genN 0 t = return []
 
 print3 :: IO ()
-print3 = withFib $ do
-  f1 <- nextFib
-  f2 <- nextFib
-  f3 <- nextFib
-  return $ forM_ [f1, f2, f3] print
+print3 =
+  withFib $ do
+    f1 <- nextFib
+    f2 <- nextFib
+    f3 <- nextFib
+    return $ forM_ [f1, f2, f3] print
 
 print3' :: IO ()
-print3' = withFib $ do
-  fibs <- genN 3 nextFib
-  return $ forM_ fibs print
+print3' =
+  withFib $ do
+    fibs <- genN 3 nextFib
+    return $ forM_ fibs print
 
 nFibs :: Int -> [Int]
 nFibs n = withFib $ genN n nextFib
 
 toFst :: (a -> b) -> a -> (b, a)
 toFst f a = (f a, a)
-
-
 
 fork :: State x a -> (a -> b) -> State x b
 -- fork st f = state $ \s -> (f $ evalState st s, s)
@@ -69,9 +71,9 @@ fork2 s1 s2 join = do
   b <- fork s2 id
   return $ join a b
 
-splitted = withFib $ do
-  genN 5 nextFib
-
-  fork2 nextFib currFib $ \a b -> do
-    print a
-    print b
+splitted =
+  withFib $ do
+    genN 5 nextFib
+    fork2 nextFib currFib $ \a b -> do
+      print a
+      print b
